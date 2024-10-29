@@ -6,8 +6,10 @@ public class EnemyScript : MonoBehaviour
 {
     [SerializeField]
     float _bulletLife = 10.0f; // ’e‚Ì¶‘¶ŠÔ(•b)
-
     float _remainingTime = 0.0f; // Ÿ‚É’e‚ğ”­Ë‚·‚é‚Ü‚Å‚Ìc‚èŠÔ
+
+    public delegate void EnemyDeathHandler();
+    public event EnemyDeathHandler onEnemyDeath;
 
     public int maxHP = 100; // Å‘åHP
     private int currentHP;
@@ -21,6 +23,8 @@ public class EnemyScript : MonoBehaviour
     public float fireRate = 2.0f; // ”­ËŠÔŠui•bj
     public float bulletSpeed = 20.0f; // ’e‚ÌƒXƒs[ƒh
 
+    public int bulletCount = 5; // ˆê“x‚É”­Ë‚·‚é’e‚Ì”
+    public float spreadAngle = 30.0f; // ƒVƒ‡ƒbƒgƒKƒ“‚ÌL‚ª‚èŠp“x
     // Start is called before the first frame update
     void Start()
     {
@@ -32,18 +36,36 @@ public class EnemyScript : MonoBehaviour
     void Update()
     {
         float xPoisition = Mathf.PingPong(Time.time * speed, Xmax - xMin) + xMin;
-        transform.position = new Vector3(xPoisition,transform.position.y, transform.position.z);
-
+        transform.position = new Vector3(xPoisition, transform.position.y, transform.position.z);
     }
 
     void Shoot()
     {
-        GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
 
-        Rigidbody rb = bullet.GetComponent<Rigidbody>();
-        if (rb != null)
+        for (int i = 0; i < bulletCount; i++)
         {
-            rb.velocity = firePoint.forward * bulletSpeed;
+            GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+
+            Rigidbody rb = bullet.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                Vector3 shootDirection;
+
+                // ’e‚Ì”­Ë•ûŒü‚ğŒvZ
+                if (bulletCount > 1)
+                {
+                    // •¡”’e‚Ìê‡‚ÍŠp“x‚ğ‚Â‚¯‚Ä”­Ë
+                    float angle = spreadAngle * ((float)i / (bulletCount - 1) - 0.5f); // -spreadAngle/2 ‚©‚ç spreadAngle/2 ‚Ü‚Å‚ÌŠp“x
+                    shootDirection = Quaternion.Euler(0, angle, 0) * firePoint.forward;
+                }
+                else
+                {
+                    // ’e‚ª1‚Â‚Ìê‡‚Í³–Ê‚É”­Ë
+                    shootDirection = firePoint.forward;
+                }
+
+                rb.velocity = shootDirection * bulletSpeed; // ’e‚Ì‘¬“x‚ğİ’è
+            }
         }
     }
 
@@ -59,6 +81,10 @@ public class EnemyScript : MonoBehaviour
 
     void Die()
     {
+        if (onEnemyDeath != null)
+        {
+            onEnemyDeath();
+        }
         Destroy(gameObject); // “G‚ğÁ‚·
     }
 }
